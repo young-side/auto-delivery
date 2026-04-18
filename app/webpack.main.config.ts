@@ -9,6 +9,10 @@ export const mainConfig: Configuration = {
    * that runs in the main process.
    */
   entry: './src/index.ts',
+  target: 'electron-main',
+  externals: {
+    playwright: 'commonjs2 playwright',
+  },
   // Put your normal webpack config below here
   module: {
     rules,

@@ -1,12 +1,25 @@
 <!doctype html>
-<html>
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
-
+    <title>주문 자동 처리</title>
   </head>
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
+    <main class="app">
+      <h1 class="title">주문 엑셀</h1>
+      <p class="hint">
+        첫 번째 시트 · 1행 헤더 · <strong>H열</strong> 비밀번호 ·
+        <strong>I열</strong> <code>마켓 아이디 주문번호</code> (공백 구분)
+      </p>
+      <div class="row">
+        <button type="button" id="btn-pick" class="btn primary">엑셀 파일 선택</button>
+        <span id="file-label" class="file-label">선택된 파일 없음</span>
+      </div>
+      <div class="row">
+        <button type="button" id="btn-run" class="btn" disabled>실행</button>
+      </div>
+      <label class="log-label" for="log">진행 로그</label>
+      <textarea id="log" class="log" readonly rows="14" spellcheck="false"></textarea>
+    </main>
   </body>
 </html>
