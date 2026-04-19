@@ -47,7 +47,7 @@ export async function runGmarketFollowUp(
   row: ParsedOrderRow,
   log: (message: string) => void,
   reusedLogin: boolean,
-): Promise<void> {
+): Promise<{ company: string; trackingNo: string } | null> {
   log(
     reusedLogin
       ? `  → (세션 유지) 주문번호 ${row.orderNo} 후속 처리`
@@ -65,21 +65,22 @@ export async function runGmarketFollowUp(
     await deliveredItem.waitFor({ state: 'visible', timeout: 15000 });
   } catch {
     log('  → 배송완료 항목을 찾지 못했습니다. (미배송/페이지 구조 변경/권한 문제 가능)');
-    return;
+    return null;
   }
 
   const line = (await addressLine.innerText().catch(() => '')).trim();
   if (!line) {
     log('  → 배송 정보 텍스트를 찾지 못했습니다. (셀렉터 변경 필요)');
-    return;
+    return null;
   }
 
   const parsed = parseCompanyAndTrackingNo(line);
   if (!parsed) {
     log(`  → 배송 정보 파싱 실패: "${line}"`);
-    return;
+    return null;
   }
 
   log(`  → 택배사: ${parsed.company}`);
   log(`  → 송장번호: ${parsed.trackingNo}`);
+  return { company: parsed.company, trackingNo: parsed.trackingNo };
 }

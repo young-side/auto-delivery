@@ -4,6 +4,8 @@ import { resolveMarketKey } from './marketRegistry';
 
 const COL_PASSWORD = 8; // H
 const COL_ORDER_INFO = 9; // I
+const COL_COURIER_COMPANY = 11; // K
+const COL_COURIER_TRACKING_NO = 12; // L
 
 function cellToString(cell: ExcelJS.Cell): string {
   const v = cell.value;
@@ -112,4 +114,23 @@ export async function parseOrderRowsFromFile(
   }
 
   return { rows, meta };
+}
+
+export async function writeCourierToExcel(
+  filePath: string,
+  excelRow: number,
+  company: string,
+  trackingNo: string,
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) return;
+
+  const row = sheet.getRow(excelRow);
+  row.getCell(COL_COURIER_COMPANY).value = company;
+  row.getCell(COL_COURIER_TRACKING_NO).value = trackingNo;
+  row.commit();
+
+  await workbook.xlsx.writeFile(filePath);
 }

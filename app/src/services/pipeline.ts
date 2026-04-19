@@ -2,7 +2,7 @@ import type { Browser, BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright';
 import type { ParsedOrderRow } from '../types/orderRow';
 import { loginGmarket, runGmarketFollowUp } from './markets/gmarketFollowUp';
-import { parseOrderRowsFromFile } from './orderExcel';
+import { parseOrderRowsFromFile, writeCourierToExcel } from './orderExcel';
 
 export type LogFn = (message: string) => void;
 
@@ -29,6 +29,7 @@ function isSameGmarketAccount(
 
 async function handleGmarketRow(
   browser: Browser,
+  filePath: string,
   row: ParsedOrderRow,
   session: ActiveGmarketSession | null,
   log: LogFn,
@@ -40,7 +41,11 @@ async function handleGmarketRow(
 
   if (isSameGmarketAccount(row, session)) {
     log(`행 ${row.excelRow}: 동일 계정(${row.userId}) — 로그인 생략`);
-    await runGmarketFollowUp(session!.page, row, log, true);
+    const courier = await runGmarketFollowUp(session!.page, row, log, true);
+    if (courier) {
+      await writeCourierToExcel(filePath, row.excelRow, courier.company, courier.trackingNo);
+      log(`행 ${row.excelRow}: 엑셀 K/L 기록 완료`);
+    }
     return session;
   }
 
@@ -65,12 +70,17 @@ async function handleGmarketRow(
     context,
     page,
   };
-  await runGmarketFollowUp(page, row, log, false);
+  const courier = await runGmarketFollowUp(page, row, log, false);
+  if (courier) {
+    await writeCourierToExcel(filePath, row.excelRow, courier.company, courier.trackingNo);
+    log(`행 ${row.excelRow}: 엑셀 K/L 기록 완료`);
+  }
   return next;
 }
 
 async function runRow(
   browser: Browser,
+  filePath: string,
   row: ParsedOrderRow,
   log: LogFn,
   gmarketSession: ActiveGmarketSession | null,
@@ -93,7 +103,7 @@ async function runRow(
   }
 
   if (row.marketKey === 'gmarket') {
-    return handleGmarketRow(browser, row, gmarketSession, log);
+    return handleGmarketRow(browser, filePath, row, gmarketSession, log);
   }
 
   return gmarketSession;
@@ -135,7 +145,7 @@ export async function runOrderPipeline(
   try {
     browser = await chromium.launch({ headless: false });
     for (const row of rows) {
-      gmarketSession = await runRow(browser, row, log, gmarketSession);
+      gmarketSession = await runRow(browser, filePath, row, log, gmarketSession);
     }
   } finally {
     if (gmarketSession) {
