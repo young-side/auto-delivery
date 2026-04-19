@@ -1,8 +1,7 @@
 import type { Browser, BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright';
 import type { ParsedOrderRow } from '../types/orderRow';
-import { runGmarketFollowUp } from './markets/gmarketFollowUp';
-import { loginGmarket } from './markets/gmarketLogin';
+import { loginGmarket, runGmarketFollowUp } from './markets/gmarketFollowUp';
 import { parseOrderRowsFromFile } from './orderExcel';
 
 export type LogFn = (message: string) => void;
