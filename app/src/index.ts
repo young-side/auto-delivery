@@ -34,16 +34,29 @@ ipcMain.handle('select-excel-file', async () => {
 
 ipcMain.handle(
   'run-pipeline',
-  async (_event, filePath: unknown): Promise<{ ok: boolean; error?: string }> => {
+  async (
+    _event,
+    filePath: unknown,
+    marketKey: unknown,
+  ): Promise<{ ok: boolean; error?: string }> => {
     if (typeof filePath !== 'string' || !filePath.trim()) {
       return { ok: false, error: '파일 경로가 없습니다.' };
+    }
+    if (
+      marketKey !== 'gmarket' &&
+      marketKey !== 'naver' &&
+      marketKey !== 'auction' &&
+      marketKey !== '11st' &&
+      marketKey !== 'ohou'
+    ) {
+      return { ok: false, error: '사이트 선택 값이 올바르지 않습니다.' };
     }
     const resolved = path.resolve(filePath.trim());
     if (!fs.existsSync(resolved)) {
       return { ok: false, error: '파일을 찾을 수 없습니다.' };
     }
     try {
-      await runOrderPipeline(resolved, (m) => sendLog(m));
+      await runOrderPipeline(resolved, (m) => sendLog(m), { marketKey });
       return { ok: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -55,8 +68,8 @@ ipcMain.handle(
 
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
-    height: 640,
-    width: 520,
+    height: 630,
+    width: 760,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       contextIsolation: true,

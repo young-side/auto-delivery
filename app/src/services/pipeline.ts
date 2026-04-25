@@ -3,8 +3,13 @@ import { chromium } from 'playwright';
 import type { ParsedOrderRow } from '../types/orderRow';
 import { loginGmarket, runGmarketFollowUp } from './markets/gmarketFollowUp';
 import { parseOrderRowsFromFile, writeCourierToExcel } from './orderExcel';
+import type { MarketHandlerKey } from '../types/market';
 
 export type LogFn = (message: string) => void;
+
+export type RunPipelineOptions = {
+  marketKey: MarketHandlerKey;
+};
 
 /** 연속 행에서 동일 지마켓 계정이면 컨텍스트 재사용 */
 type ActiveGmarketSession = {
@@ -84,6 +89,7 @@ async function runRow(
   row: ParsedOrderRow,
   log: LogFn,
   gmarketSession: ActiveGmarketSession | null,
+  opts: RunPipelineOptions,
 ): Promise<ActiveGmarketSession | null> {
   if (!row.marketKey) {
     const hasThreeTokens =
@@ -102,10 +108,15 @@ async function runRow(
     return gmarketSession;
   }
 
+  if (row.marketKey !== opts.marketKey) {
+    return gmarketSession;
+  }
+
   if (row.marketKey === 'gmarket') {
     return handleGmarketRow(browser, filePath, row, gmarketSession, log);
   }
 
+  log(`행 ${row.excelRow}: 아직 지원하지 않는 마켓 "${row.marketLabel}" — 건너뜀`);
   return gmarketSession;
 }
 
@@ -117,9 +128,11 @@ function maskId(id: string): string {
 export async function runOrderPipeline(
   filePath: string,
   log: LogFn,
+  opts: RunPipelineOptions,
 ): Promise<void> {
   const { rows, meta } = await parseOrderRowsFromFile(filePath);
 
+  log(`[사이트 선택] ${opts.marketKey}`);
   log(
     `[엑셀 읽기] 시트 "${meta.sheetName || '?'}" (통합문서 시트 ${meta.totalWorksheets}개 중 첫 번째만 사용)`,
   );
@@ -145,7 +158,7 @@ export async function runOrderPipeline(
   try {
     browser = await chromium.launch({ headless: false });
     for (const row of rows) {
-      gmarketSession = await runRow(browser, filePath, row, log, gmarketSession);
+      gmarketSession = await runRow(browser, filePath, row, log, gmarketSession, opts);
     }
   } finally {
     if (gmarketSession) {

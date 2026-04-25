@@ -3,25 +3,47 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>주문 자동 처리</title>
+  <title>택배사 송장번호 추출기</title>
 </head>
 
 <body>
   <main class="app">
-    <h1 class="title">주문 엑셀</h1>
-    <p class="hint">
-      첫 번째 시트 · 1행 헤더 · <strong>H열</strong> 비밀번호 ·
-      <strong>I열</strong> <code>마켓 아이디 주문번호</code> (공백 구분)
-    </p>
-    <div class="row">
-      <button type="button" id="btn-pick" class="btn primary">엑셀 파일 선택</button>
-      <span id="file-label" class="file-label">선택된 파일 없음</span>
-    </div>
-    <div class="row">
-      <button type="button" id="btn-run" class="btn" disabled>실행</button>
-    </div>
-    <label class="log-label" for="log">진행 로그</label>
-    <textarea id="log" class="log" readonly rows="14" spellcheck="false"></textarea>
+    <header class="header">
+      <h1 class="title">택배사 송장번호 추출기</h1>
+    </header>
+
+    <section class="card">
+      <div class="section-title">엑셀 파일 선택</div>
+      <p class="hint">
+        <strong>H열</strong> 비밀번호 /
+        <strong>I열</strong> 마켓 아이디 주문번호(공백 구분)
+      </p>
+      <div class="file-row">
+        <div class="file-pill" aria-label="선택된 파일">
+          <span class="file-icon" aria-hidden="true"></span>
+          <span id="file-label" class="file-name">선택된 파일 없음</span>
+        </div>
+        <button type="button" id="btn-pick" class="btn primary">파일 선택</button>
+      </div>
+
+      <div class="section-title mt">사이트 선택</div>
+      <div class="market-row" role="group" aria-label="사이트 선택">
+        <label class="chk"><input type="checkbox" id="m-gmarket" checked /> <span>지마켓</span></label>
+        <label class="chk"><input type="checkbox" id="m-naver" /> <span>네이버</span></label>
+        <label class="chk"><input type="checkbox" id="m-auction" /> <span>옥션</span></label>
+        <label class="chk"><input type="checkbox" id="m-11st" /> <span>11번가</span></label>
+        <label class="chk"><input type="checkbox" id="m-ohou" /> <span>오늘의집</span></label>
+      </div>
+
+      <div class="cta-row">
+        <button type="button" id="btn-run" class="btn cta" disabled>추출 시작</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-title">실행 로그</div>
+      <textarea id="log" class="log" readonly rows="5" spellcheck="false"></textarea>
+    </section>
   </main>
 </body>
 

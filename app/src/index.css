@@ -6,6 +6,8 @@
 
 body {
   font-family:
+    'Pretendard Variable',
+    Pretendard,
     'Malgun Gothic',
     -apple-system,
     BlinkMacSystemFont,
@@ -21,15 +23,19 @@ body {
 }
 
 .app {
-  max-width: 480px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 1.25rem 1.5rem 1.5rem;
+  padding: 1.5rem 1.75rem 1.75rem;
+}
+
+.header {
+  margin-bottom: 1.25rem;
 }
 
 .title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
 }
 
 .hint {
@@ -46,27 +52,78 @@ body {
   border-radius: 4px;
 }
 
-.row {
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.1rem 1.1rem;
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.02);
+}
+
+.card+.card {
+  margin-top: 1rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.65rem;
+}
+
+.section-title.mt {
+  margin-top: 1rem;
+}
+
+.file-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+}
+
+.file-pill {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0 0.85rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.file-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: #16a34a;
+  flex: 0 0 auto;
+}
+
+.file-name {
+  font-size: 0.9rem;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn {
   font: inherit;
-  padding: 0.45rem 1rem;
-  border-radius: 6px;
-  border: 1px solid #dadce0;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
   background: #fff;
   cursor: pointer;
-  color: #3c4043;
+  color: #111827;
+  height: 44px;
 }
 
 .btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  border-color: #bdc1c6;
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
 .btn:disabled {
@@ -75,22 +132,59 @@ body {
 }
 
 .btn.primary {
-  background: #1a73e8;
-  border-color: #1a73e8;
+  background: #5481ff;
+  border-color: #5481ff;
   color: #fff;
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: #1967d2;
-  border-color: #1967d2;
+  background: #5481ff;
+  border-color: #5481ff;
 }
 
-.file-label {
-  font-size: 0.8125rem;
-  color: #5f6368;
-  word-break: break-all;
-  flex: 1;
-  min-width: 0;
+.btn.cta {
+  width: min(280px, 100%);
+  height: 50px;
+  border-radius: 12px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  background: #5481ff;
+  border-color: #5481ff;
+  color: #fff;
+}
+
+.btn.cta:hover:not(:disabled) {
+  background: #5481ff;
+  border-color: #5481ff;
+}
+
+.market-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  align-items: center;
+  padding: 0.1rem 0;
+}
+
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.92rem;
+  color: #111827;
+  user-select: none;
+}
+
+.chk input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+}
+
+.cta-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.1rem;
 }
 
 .log-label {
@@ -104,11 +198,11 @@ body {
 .log {
   width: 100%;
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   line-height: 1.4;
-  padding: 0.6rem 0.65rem;
-  border: 1px solid #dadce0;
-  border-radius: 6px;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   resize: vertical;
-  background: #fff;
+  background: #f9fafb;
 }
