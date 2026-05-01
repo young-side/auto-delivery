@@ -1,6 +1,7 @@
 import type { Browser, BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright';
 import type { ParsedOrderRow } from '../types/orderRow';
+import { loginAuction, runAuctionFollowUp } from './markets/auctionFollowUp';
 import { loginGmarket, runGmarketFollowUp } from './markets/gmarketFollowUp';
 import { parseOrderRowsFromFile, writeCourierToExcel } from './orderExcel';
 import type { MarketHandlerKey } from '../types/market';
@@ -11,12 +12,24 @@ export type RunPipelineOptions = {
   marketKey: MarketHandlerKey;
 };
 
-/** 연속 행에서 동일 지마켓 계정이면 컨텍스트 재사용 */
+/** 연속 행에서 동일 계정이면 컨텍스트 재사용 */
 type ActiveGmarketSession = {
   userId: string;
   password: string;
   context: BrowserContext;
   page: Page;
+};
+
+type ActiveAuctionSession = {
+  userId: string;
+  password: string;
+  context: BrowserContext;
+  page: Page;
+};
+
+type PipelineSessions = {
+  gmarket: ActiveGmarketSession | null;
+  auction: ActiveAuctionSession | null;
 };
 
 function isSameGmarketAccount(
@@ -83,14 +96,78 @@ async function handleGmarketRow(
   return next;
 }
 
+function isSameAuctionAccount(
+  row: ParsedOrderRow,
+  session: ActiveAuctionSession | null,
+): boolean {
+  return (
+    !!session &&
+    row.marketKey === 'auction' &&
+    row.password.length > 0 &&
+    session.userId === row.userId &&
+    session.password === row.password
+  );
+}
+
+async function handleAuctionRow(
+  browser: Browser,
+  filePath: string,
+  row: ParsedOrderRow,
+  session: ActiveAuctionSession | null,
+  log: LogFn,
+): Promise<ActiveAuctionSession | null> {
+  if (!row.password) {
+    log(`행 ${row.excelRow}: H열 비밀번호가 비어 있음`);
+    return session;
+  }
+
+  if (isSameAuctionAccount(row, session)) {
+    log(`행 ${row.excelRow}: 동일 계정(${row.userId}) — 로그인 생략`);
+    const courier = await runAuctionFollowUp(session!.page, row, log, true);
+    if (courier) {
+      await writeCourierToExcel(filePath, row.excelRow, courier.company, courier.trackingNo);
+      log(`행 ${row.excelRow}: 엑셀 K/L 기록 완료`);
+    }
+    return session;
+  }
+
+  if (session) {
+    await session.context.close();
+  }
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    log(`행 ${row.excelRow}: 옥션 로그인 시도… (${row.userId})`);
+    await loginAuction(page, row.userId, row.password);
+    log(`행 ${row.excelRow}: 옥션 로그인 완료`);
+  } catch (err) {
+    await context.close();
+    throw err;
+  }
+
+  const next: ActiveAuctionSession = {
+    userId: row.userId,
+    password: row.password,
+    context,
+    page,
+  };
+  const courier = await runAuctionFollowUp(page, row, log, false);
+  if (courier) {
+    await writeCourierToExcel(filePath, row.excelRow, courier.company, courier.trackingNo);
+    log(`행 ${row.excelRow}: 엑셀 K/L 기록 완료`);
+  }
+  return next;
+}
+
 async function runRow(
   browser: Browser,
   filePath: string,
   row: ParsedOrderRow,
   log: LogFn,
-  gmarketSession: ActiveGmarketSession | null,
+  sessions: PipelineSessions,
   opts: RunPipelineOptions,
-): Promise<ActiveGmarketSession | null> {
+): Promise<void> {
   if (!row.marketKey) {
     const hasThreeTokens =
       Boolean(row.marketLabel.trim()) &&
@@ -105,19 +182,36 @@ async function runRow(
         `행 ${row.excelRow}: 지원하지 않는 마켓 "${row.marketLabel}" — 건너뜀`,
       );
     }
-    return gmarketSession;
+    return;
   }
 
   if (row.marketKey !== opts.marketKey) {
-    return gmarketSession;
+    return;
   }
 
   if (row.marketKey === 'gmarket') {
-    return handleGmarketRow(browser, filePath, row, gmarketSession, log);
+    sessions.gmarket = await handleGmarketRow(
+      browser,
+      filePath,
+      row,
+      sessions.gmarket,
+      log,
+    );
+    return;
+  }
+
+  if (row.marketKey === 'auction') {
+    sessions.auction = await handleAuctionRow(
+      browser,
+      filePath,
+      row,
+      sessions.auction,
+      log,
+    );
+    return;
   }
 
   log(`행 ${row.excelRow}: 아직 지원하지 않는 마켓 "${row.marketLabel}" — 건너뜀`);
-  return gmarketSession;
 }
 
 function maskId(id: string): string {
@@ -154,15 +248,21 @@ export async function runOrderPipeline(
   );
 
   let browser: Browser | undefined;
-  let gmarketSession: ActiveGmarketSession | null = null;
+  const pipelineSessions: PipelineSessions = {
+    gmarket: null,
+    auction: null,
+  };
   try {
     browser = await chromium.launch({ headless: false });
     for (const row of rows) {
-      gmarketSession = await runRow(browser, filePath, row, log, gmarketSession, opts);
+      await runRow(browser, filePath, row, log, pipelineSessions, opts);
     }
   } finally {
-    if (gmarketSession) {
-      await gmarketSession.context.close();
+    if (pipelineSessions.gmarket) {
+      await pipelineSessions.gmarket.context.close();
+    }
+    if (pipelineSessions.auction) {
+      await pipelineSessions.auction.context.close();
     }
     if (browser) {
       await browser.close();
