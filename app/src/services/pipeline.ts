@@ -2,6 +2,7 @@ import type { Browser, BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright';
 import type { ParsedOrderRow } from '../types/orderRow';
 import { loginAuction, runAuctionFollowUp } from './markets/auctionFollowUp';
+import { loginElevenst, runElevenstFollowUp } from './markets/elevenstFollowUp';
 import { loginGmarket, runGmarketFollowUp } from './markets/gmarketFollowUp';
 import { parseOrderRowsFromFile, writeCourierToExcel } from './orderExcel';
 import type { MarketHandlerKey } from '../types/market';
@@ -27,9 +28,17 @@ type ActiveAuctionSession = {
   page: Page;
 };
 
+type ActiveElevenstSession = {
+  userId: string;
+  password: string;
+  context: BrowserContext;
+  page: Page;
+};
+
 type PipelineSessions = {
   gmarket: ActiveGmarketSession | null;
   auction: ActiveAuctionSession | null;
+  elevenst: ActiveElevenstSession | null;
 };
 
 function isSameGmarketAccount(
@@ -160,6 +169,70 @@ async function handleAuctionRow(
   return next;
 }
 
+function isSameElevenstAccount(
+  row: ParsedOrderRow,
+  session: ActiveElevenstSession | null,
+): boolean {
+  return (
+    !!session &&
+    row.marketKey === '11st' &&
+    row.password.length > 0 &&
+    session.userId === row.userId &&
+    session.password === row.password
+  );
+}
+
+async function handleElevenstRow(
+  browser: Browser,
+  filePath: string,
+  row: ParsedOrderRow,
+  session: ActiveElevenstSession | null,
+  log: LogFn,
+): Promise<ActiveElevenstSession | null> {
+  if (!row.password) {
+    log(`행 ${row.excelRow}: H열 비밀번호가 비어 있음`);
+    return session;
+  }
+
+  if (isSameElevenstAccount(row, session)) {
+    log(`행 ${row.excelRow}: 동일 계정(${row.userId}) — 로그인 생략`);
+    const courier = await runElevenstFollowUp(session!.page, row, log, true);
+    if (courier) {
+      await writeCourierToExcel(filePath, row.excelRow, courier.company, courier.trackingNo);
+      log(`행 ${row.excelRow}: 엑셀 K/L 기록 완료`);
+    }
+    return session;
+  }
+
+  if (session) {
+    await session.context.close();
+  }
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    log(`행 ${row.excelRow}: 11번가 로그인 시도… (${row.userId})`);
+    await loginElevenst(page, row.userId, row.password, log);
+    log(`행 ${row.excelRow}: 11번가 로그인 완료`);
+  } catch (err) {
+    await context.close();
+    throw err;
+  }
+
+  const next: ActiveElevenstSession = {
+    userId: row.userId,
+    password: row.password,
+    context,
+    page,
+  };
+  const courier = await runElevenstFollowUp(page, row, log, false);
+  if (courier) {
+    await writeCourierToExcel(filePath, row.excelRow, courier.company, courier.trackingNo);
+    log(`행 ${row.excelRow}: 엑셀 K/L 기록 완료`);
+  }
+  return next;
+}
+
 async function runRow(
   browser: Browser,
   filePath: string,
@@ -211,6 +284,17 @@ async function runRow(
     return;
   }
 
+  if (row.marketKey === '11st') {
+    sessions.elevenst = await handleElevenstRow(
+      browser,
+      filePath,
+      row,
+      sessions.elevenst,
+      log,
+    );
+    return;
+  }
+
   log(`행 ${row.excelRow}: 아직 지원하지 않는 마켓 "${row.marketLabel}" — 건너뜀`);
 }
 
@@ -251,6 +335,7 @@ export async function runOrderPipeline(
   const pipelineSessions: PipelineSessions = {
     gmarket: null,
     auction: null,
+    elevenst: null,
   };
   try {
     browser = await chromium.launch({ headless: false });
@@ -263,6 +348,9 @@ export async function runOrderPipeline(
     }
     if (pipelineSessions.auction) {
       await pipelineSessions.auction.context.close();
+    }
+    if (pipelineSessions.elevenst) {
+      await pipelineSessions.elevenst.context.close();
     }
     if (browser) {
       await browser.close();

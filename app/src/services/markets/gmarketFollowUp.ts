@@ -54,7 +54,6 @@ export async function runGmarketFollowUp(
   );
 
   const url = buildGmarketTrackingUrl(row.orderNo);
-  log(`  → tracking 이동: ${url}`);
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
   const deliveredItem = page.locator('li.list-item--delivered').first();

@@ -10,6 +10,7 @@ declare global {
         filePath: string,
         marketKey: MarketKey,
       ) => Promise<{ ok: boolean; error?: string }>;
+      resumeCaptcha: () => void;
       onPipelineLog: (callback: (message: string) => void) => () => void;
     };
   }

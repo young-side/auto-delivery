@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     marketKey: MarketKey,
   ): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('run-pipeline', filePath, marketKey),
+  resumeCaptcha: (): void => ipcRenderer.send('captcha-resume'),
   onPipelineLog: (callback: (message: string) => void): (() => void) => {
     const handler = (_event: unknown, message: string): void => {
       callback(message);

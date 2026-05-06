@@ -35,6 +35,12 @@ window.electronAPI.onPipelineLog((message: string) => {
   appendLog(message);
 });
 
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'F8') return;
+  e.preventDefault();
+  window.electronAPI.resumeCaptcha();
+});
+
 function enforceSingleMarketSelection(changed?: HTMLInputElement): void {
   if (marketChecks.length === 0) return;
 
